@@ -202,5 +202,9 @@ android {
                 }
             }
         }
+        vectorDrawables {
+            generatedDensities = []
+            useSupportLibrary = true
+        }
     }
 }
