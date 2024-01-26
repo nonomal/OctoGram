@@ -217,6 +217,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import it.octogram.android.OctoConfig;
+import it.octogram.android.utils.ForwardContext;
+import it.octogram.android.utils.LanguageController;
 
 public class LaunchActivity extends BasePermissionsActivity implements INavigationLayout.INavigationLayoutDelegate, NotificationCenter.NotificationCenterDelegate, DialogsActivity.DialogsActivityDelegate {
     public final static String EXTRA_FORCE_NOT_INTERNAL_APPS = "force_not_internal_apps";
@@ -1674,7 +1676,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         PasscodeView.PasscodeViewDelegate delegate = view -> {
             SharedConfig.isWaitingForPasscodeEnter = false;
             if (passcodeSaveIntent != null) {
-                handleIntent(passcodeSaveIntent, passcodeSaveIntentIsNew, passcodeSaveIntentIsRestore, true);
+                handleIntent(passcodeSaveIntent, passcodeSaveIntentIsNew, passcodeSaveIntentIsRestore, true, null, false);
                 passcodeSaveIntent = null;
             }
             drawerLayoutContainer.setAllowOpenDrawer(true, false);
@@ -2101,7 +2103,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                         String inputInvoiceSlug = null;
                         Integer messageId = null;
                         Long channelId = null;
-                        Integer threadId = null;
+                        Long threadId = null;
                         boolean isBoost = false;
                         Integer commentId = null;
                         int videoTimestamp = -1;
@@ -2275,18 +2277,18 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                                         messageId = null;
                                                         channelId = null;
                                                     }
-                                                    threadId = Utilities.parseInt(data.getQueryParameter("thread"));
+                                                    threadId = Utilities.parseLong(data.getQueryParameter("thread"));
                                                     if (threadId == 0) {
                                                         threadId = null;
                                                     }
                                                     if (threadId == null) {
-                                                        threadId = Utilities.parseInt(data.getQueryParameter("topic"));
+                                                        threadId = Utilities.parseLong(data.getQueryParameter("topic"));
                                                         if (threadId == 0) {
                                                             threadId = null;
                                                         }
                                                     }
                                                     if (threadId == null && messageId != null && segments.size() >= 4) {
-                                                        threadId = messageId;
+                                                        threadId = (long) (int) messageId;
                                                         messageId = Utilities.parseInt(segments.get(3));
                                                     }
                                                 }
@@ -2340,7 +2342,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                                 setAsAttachBot = data.getQueryParameter("startattach");
                                                 attachMenuBotChoose = data.getQueryParameter("choose");
                                                 attachMenuBotToOpen = data.getQueryParameter("attach");
-                                                threadId = Utilities.parseInt(data.getQueryParameter("thread"));
+                                                threadId = Utilities.parseLong(data.getQueryParameter("thread"));
                                                 if (data.getQuery() != null) {
                                                     isBoost = data.getQuery().equals("boost");
                                                 }
@@ -2349,13 +2351,13 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                                     threadId = null;
                                                 }
                                                 if (threadId == null) {
-                                                    threadId = Utilities.parseInt(data.getQueryParameter("topic"));
+                                                    threadId = Utilities.parseLong(data.getQueryParameter("topic"));
                                                     if (threadId == 0) {
                                                         threadId = null;
                                                     }
                                                 }
                                                 if (threadId == null && messageId != null && segments.size() >= 3) {
-                                                    threadId = messageId;
+                                                    threadId = (long) (int) messageId;
                                                     messageId = Utilities.parseInt(segments.get(2));
                                                 }
                                                 commentId = Utilities.parseInt(data.getQueryParameter("comment"));
@@ -2418,12 +2420,12 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                             if (messageId == 0) {
                                                 messageId = null;
                                             }
-                                            threadId = Utilities.parseInt(data.getQueryParameter("thread"));
+                                            threadId = Utilities.parseLong(data.getQueryParameter("thread"));
                                             if (threadId == 0) {
                                                 threadId = null;
                                             }
                                             if (threadId == null) {
-                                                threadId = Utilities.parseInt(data.getQueryParameter("topic"));
+                                                threadId = Utilities.parseLong(data.getQueryParameter("topic"));
                                                 if (threadId == 0) {
                                                     threadId = null;
                                                 }
@@ -2450,12 +2452,12 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                             messageId = null;
                                             channelId = null;
                                         }
-                                        threadId = Utilities.parseInt(data.getQueryParameter("thread"));
+                                        threadId = Utilities.parseLong(data.getQueryParameter("thread"));
                                         if (threadId == 0) {
                                             threadId = null;
                                         }
                                         if (threadId == null) {
-                                            threadId = Utilities.parseInt(data.getQueryParameter("topic"));
+                                            threadId = Utilities.parseLong(data.getQueryParameter("topic"));
                                             if (threadId == 0) {
                                                 threadId = null;
                                             }
@@ -2791,7 +2793,12 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                         url = url.replace("tg:addcontact", "tg://telegram.org").replace("tg://addcontact", "tg://telegram.org");
                                         data = Uri.parse(url);
                                         newContactName = data.getQueryParameter("name");
-                                        newContactPhone = data.getQueryParameter("phone");
+
+                                        // use getQueryParameters to keep the "+" sign
+                                        List<String> phoneParams = data.getQueryParameters("phone");
+                                        if (phoneParams != null && phoneParams.size() > 0) {
+                                            newContactPhone = phoneParams.get(0);
+                                        }
                                         newContact = true;
                                     } else if (url.startsWith("tg:addlist") || url.startsWith("tg://addlist")) {
                                         url = url.replace("tg:addlist", "tg://telegram.org").replace("tg://addlist", "tg://telegram.org");
@@ -2937,7 +2944,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 if (lastFragment instanceof DialogsActivity) {
                     final DialogsActivity dialogsActivity = (DialogsActivity) lastFragment;
                     if (dialogsActivity.isMainDialogList()) {
-                        if (dialogsActivity.getFragmentView() != null) {
+                        if (dialogsActivity.getFragmentView() != null && isNew) {
                             dialogsActivity.search(searchQuery, true);
                         } else {
                             dialogsActivity.setInitialSearchString(searchQuery);
@@ -3380,6 +3387,17 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 return false;
             }
         };
+        fragment.forwardContext = new ForwardContext() {
+            @Override
+            public ArrayList<MessageObject> getForwardingMessages() {
+                return null;
+            }
+
+            @Override
+            public boolean forceShowScheduleAndSound() {
+                return true;
+            }
+        };
         fragment.setDelegate(this);
         boolean removeLast;
         if (AndroidUtilities.isTablet()) {
@@ -3411,17 +3429,17 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         }
     }
 
-    private int runCommentRequest(int intentAccount, Runnable dismissLoading, Integer messageId, Integer commentId, Integer threadId, TLRPC.Chat chat) {
+    private int runCommentRequest(int intentAccount, Runnable dismissLoading, Integer messageId, Integer commentId, Long threadId, TLRPC.Chat chat) {
         return runCommentRequest(intentAccount, dismissLoading, messageId, commentId, threadId, chat, null, null, 0, -1);
     }
 
-    private int runCommentRequest(int intentAccount, Runnable dismissLoading, Integer messageId, Integer commentId, Integer threadId, TLRPC.Chat chat, Runnable onOpened, String quote, int fromMessageId, int quoteOffset) {
+    private int runCommentRequest(int intentAccount, Runnable dismissLoading, Integer messageId, Integer commentId, Long threadId, TLRPC.Chat chat, Runnable onOpened, String quote, int fromMessageId, int quoteOffset) {
         if (chat == null) {
             return 0;
         }
         TLRPC.TL_messages_getDiscussionMessage req = new TLRPC.TL_messages_getDiscussionMessage();
         req.peer = MessagesController.getInputPeer(chat);
-        req.msg_id = commentId != null ? messageId : threadId;
+        req.msg_id = commentId != null ? messageId : (int) (long) threadId;
         return ConnectionsManager.getInstance(intentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
             boolean chatOpened = false;
             if (response instanceof TLRPC.TL_messages_discussionMessage) {
@@ -3434,7 +3452,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 }
                 if (!arrayList.isEmpty() || chat.forum && threadId != null && threadId == 1) {
                     if (chat.forum) {
-                        openTopicRequest(intentAccount, threadId, chat, commentId != null ? commentId : messageId, null, onOpened, quote, fromMessageId, arrayList, quoteOffset);
+                        openTopicRequest(intentAccount, (int) (long) threadId, chat, commentId != null ? commentId : messageId, null, onOpened, quote, fromMessageId, arrayList, quoteOffset);
                         chatOpened = true;
                     } else {
                         Bundle args = new Bundle();
@@ -3775,7 +3793,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                 final boolean hasUrl,
                                 final Integer messageId,
                                 final Long channelId,
-                                final Integer threadId,
+                                final Long threadId,
                                 final Integer commentId,
                                 final String game,
                                 final HashMap<String, String> auth,
@@ -4324,9 +4342,9 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                 } else {
                                     TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialog_id);
                                     if (chat != null && chat.forum) {
-                                        Integer topicId = threadId;
-                                        if (topicId == null) {
-                                            topicId = messageId;
+                                        Long topicId = threadId;
+                                        if (topicId == null && messageId != null) {
+                                            topicId = (long) (int) messageId;
                                         }
                                         if (topicId != null && topicId != 0) {
                                             openForumFromLink(dialog_id, messageId, () -> {
@@ -4993,7 +5011,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                   final boolean hasUrl,
                                   final Integer messageId,
                                   final Long channelId,
-                                  final Integer threadId,
+                                  final Long threadId,
                                   final Integer commentId,
                                   final String game,
                                   final HashMap<String, String> auth,
@@ -5276,7 +5294,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 }
 
                 if (message != null) {
-                    runCommentRequest(currentAccount, null, message.id, null, MessageObject.getTopicId(message, MessagesController.getInstance(currentAccount).isForum(message)), MessagesController.getInstance(currentAccount).getChat(-dialogId), onOpened, quote, fromMessageId, quoteOffset);
+                    runCommentRequest(currentAccount, null, message.id, null, MessageObject.getTopicId(currentAccount, message, MessagesController.getInstance(currentAccount).isForum(message)), MessagesController.getInstance(currentAccount).getChat(-dialogId), onOpened, quote, fromMessageId, quoteOffset);
                     return;
                 }
 
@@ -5536,7 +5554,8 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
 
             }
         } else {
-            boolean notify = dialogsFragment == null || dialogsFragment.notify;
+            boolean notify = dialogsFragment == null || dialogsFragment.forwardContext == null || dialogsFragment.forwardContext.getForwardParams().notify;
+            int scheduleDate = dialogsFragment == null || dialogsFragment.forwardContext == null ? 0 : dialogsFragment.forwardContext.getForwardParams().scheduleDate;
             final ChatActivity fragment;
             if (dids.size() <= 1) {
                 final long did = dids.get(0).dialogId;
@@ -5552,6 +5571,9 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                     args.putLong("user_id", did);
                 } else {
                     args.putLong("chat_id", -did);
+                }
+                if (scheduleDate != 0) {
+                    args.putInt("chatMode", ChatActivity.MODE_SCHEDULED);
                 }
                 if (!MessagesController.getInstance(account).checkCanOpenChat(args, dialogsFragment)) {
                     return false;
@@ -5599,14 +5621,14 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             if (contactsToSend != null && contactsToSend.size() == 1 && !mainFragmentsStack.isEmpty()) {
                 presentedFragmentWithRemoveLast = true;
                 PhonebookShareAlert alert = new PhonebookShareAlert(mainFragmentsStack.get(mainFragmentsStack.size() - 1), null, null, contactsToSendUri, null, null, null);
-                alert.setDelegate((user, notify2, scheduleDate) -> {
+                alert.setDelegate((user, notify2, scheduleDate2) -> {
                     if (fragment != null) {
                         getActionBarLayout().presentFragment(fragment, true, false, true, false);
                     }
                     AccountInstance accountInstance = AccountInstance.getInstance(UserConfig.selectedAccount);
                     for (int i = 0; i < dids.size(); i++) {
                         long did = dids.get(i).dialogId;
-                        int topicId = dids.get(i).topicId;
+                        long topicId = dids.get(i).topicId;
                         MessageObject replyToMsg = null;
                         if (topicId != 0) {
                             TLRPC.TL_forumTopic topic = accountInstance.getMessagesController().getTopicsController().findTopic(-did, topicId);
@@ -5627,7 +5649,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 String captionToSend = null;
                 for (int i = 0; i < dids.size(); i++) {
                     final long did = dids.get(i).dialogId;
-                    final int topicId = dids.get(i).topicId;
+                    final long topicId = dids.get(i).topicId;
 
                     AccountInstance accountInstance = AccountInstance.getInstance(UserConfig.selectedAccount);
                     MessageObject replyToMsg = null;
@@ -5661,7 +5683,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                             }
                             ArrayList<String> arrayList = new ArrayList<>();
                             arrayList.add(videoPath);
-                            SendMessagesHelper.prepareSendingDocuments(accountInstance, arrayList, arrayList, null, captionToSend, null, did, replyToMsg, replyToMsg, null, null, null, notify, 0, null);
+                            SendMessagesHelper.prepareSendingDocuments(accountInstance, arrayList, arrayList, null, captionToSend, null, did, replyToMsg, replyToMsg, null, null, null, notify, scheduleDate, null);
                         }
                     }
                     if (photoPathsArray != null && !photosEditorOpened) {
@@ -5669,14 +5691,14 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                             photoPathsArray.get(0).caption = sendingText;
                             sendingText = null;
                         }
-                        SendMessagesHelper.prepareSendingMedia(accountInstance, photoPathsArray, did, replyToMsg, replyToMsg, null, null, false, false, null, notify, 0, false, null);
+                        SendMessagesHelper.prepareSendingMedia(accountInstance, photoPathsArray, did, replyToMsg, replyToMsg, null, null, false, false, null, notify, scheduleDate, false, null);
                     }
                     if (documentsPathsArray != null || documentsUrisArray != null) {
                         if (sendingText != null && sendingText.length() <= 1024 && ((documentsPathsArray != null ? documentsPathsArray.size() : 0) + (documentsUrisArray != null ? documentsUrisArray.size() : 0)) == 1) {
                             captionToSend = sendingText;
                             sendingText = null;
                         }
-                        SendMessagesHelper.prepareSendingDocuments(accountInstance, documentsPathsArray, documentsOriginalPathsArray, documentsUrisArray, captionToSend, documentsMimeType, did, replyToMsg, replyToMsg, null, null, null, notify, 0, null);
+                        SendMessagesHelper.prepareSendingDocuments(accountInstance, documentsPathsArray, documentsOriginalPathsArray, documentsUrisArray, captionToSend, documentsMimeType, did, replyToMsg, replyToMsg, null, null, null, notify, scheduleDate, null);
                     }
                     if (voicePath != null) {
                         File file = new File(voicePath);
@@ -5710,11 +5732,11 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                     if (contactsToSend != null && !contactsToSend.isEmpty()) {
                         for (int a = 0; a < contactsToSend.size(); a++) {
                             TLRPC.User user = contactsToSend.get(a);
-                            SendMessagesHelper.getInstance(account).sendMessage(SendMessagesHelper.SendMessageParams.of(user, did, replyToMsg, replyToMsg, null, null, notify, 0));
+                            SendMessagesHelper.getInstance(account).sendMessage(SendMessagesHelper.SendMessageParams.of(user, did, replyToMsg, replyToMsg, null, null, notify, scheduleDate));
                         }
                     }
                     if (!TextUtils.isEmpty(message) && !videoEditorOpened && !photosEditorOpened) {
-                        SendMessagesHelper.prepareSendingText(accountInstance, message.toString(), did, topicId, notify, 0);
+                        SendMessagesHelper.prepareSendingText(accountInstance, message.toString(), did, topicId, notify, scheduleDate);
                     }
                 }
             }
@@ -6136,6 +6158,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         } else if (SharedConfig.pendingAppUpdate != null && SharedConfig.pendingAppUpdate.can_not_skip) {
             showUpdateActivity(UserConfig.selectedAccount, SharedConfig.pendingAppUpdate, true);
         }
+        LanguageController.loadRemoteLanguageFromCache(LocaleController.getInstance().getCurrentLocale(), false);
         checkAppUpdate(false);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -6156,7 +6179,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         AndroidUtilities.resetWasTabletFlag();
         if (wasTablet != AndroidUtilities.isTablet()) {
             long dialogId = 0;
-            int topicId = 0;
+            long topicId = 0;
             if (wasTablet) {
                 mainFragmentsStack.addAll(rightFragmentsStack);
                 mainFragmentsStack.addAll(layerFragmentsStack);

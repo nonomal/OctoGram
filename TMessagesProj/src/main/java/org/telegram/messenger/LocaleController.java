@@ -23,6 +23,7 @@ import android.util.Xml;
 import androidx.annotation.StringRes;
 
 import it.octogram.android.OctoConfig;
+import it.octogram.android.utils.LanguageController;
 import it.octogram.android.utils.OctoUtils;
 
 import org.telegram.messenger.time.FastDateFormat;
@@ -1002,6 +1003,7 @@ public class LocaleController {
             currentLocaleInfo = localeInfo;
             FileLog.d("applyLanguage: currentLocaleInfo is set");
 
+            LanguageController.loadRemoteLanguageFromCache(newLocale, true);
             if (!TextUtils.isEmpty(currentLocaleInfo.pluralLangCode)) {
                 currentPluralRules = allRules.get(currentLocaleInfo.pluralLangCode);
             }
@@ -1110,6 +1112,10 @@ public class LocaleController {
             }
         }
         return value;
+    }
+
+    public static void addLocaleValue(HashMap<String, String> vars) {
+        getInstance().localeValues.putAll(vars);
     }
 
     public static String getString(@StringRes int res) {
@@ -2235,11 +2241,11 @@ public class LocaleController {
     public static String formatUserStatus(int currentAccount, TLRPC.User user, boolean[] isOnline, boolean[] madeShorter) {
         if (user != null && user.status != null && user.status.expires == 0) {
             if (user.status instanceof TLRPC.TL_userStatusRecently) {
-                user.status.expires = -100;
+                user.status.expires = user.status.by_me ? -1000 : -100;
             } else if (user.status instanceof TLRPC.TL_userStatusLastWeek) {
-                user.status.expires = -101;
+                user.status.expires = user.status.by_me ? -1001 : -101;
             } else if (user.status instanceof TLRPC.TL_userStatusLastMonth) {
-                user.status.expires = -102;
+                user.status.expires = user.status.by_me ? -1002 : -102;
             }
         }
         if (user != null && user.status != null && user.status.expires <= 0) {
@@ -2262,11 +2268,11 @@ public class LocaleController {
             } else {
                 if (user.status.expires == -1) {
                     return getString("Invisible", R.string.Invisible);
-                } else if (user.status.expires == -100) {
+                } else if (user.status.expires == -100 || user.status.expires == -1000) {
                     return getString("Lately", R.string.Lately);
-                } else if (user.status.expires == -101) {
+                } else if (user.status.expires == -101 || user.status.expires == -1001) {
                     return getString("WithinAWeek", R.string.WithinAWeek);
-                } else if (user.status.expires == -102) {
+                } else if (user.status.expires == -102 || user.status.expires == -1002) {
                     return getString("WithinAMonth", R.string.WithinAMonth);
                 } else {
                     return formatDateOnline(user.status.expires, madeShorter);
@@ -2394,6 +2400,7 @@ public class LocaleController {
                         localeValues = valuesToSet;
                         currentLocale = newLocale;
                         currentLocaleInfo = localeInfo;
+                        LanguageController.loadRemoteLanguageFromCache(newLocale,true);
                         if (!TextUtils.isEmpty(currentLocaleInfo.pluralLangCode)) {
                             currentPluralRules = allRules.get(currentLocaleInfo.pluralLangCode);
                         }
@@ -2639,7 +2646,7 @@ public class LocaleController {
         }
 
         if (translitChars == null) {
-            translitChars = new HashMap<>(487);
+            translitChars = new HashMap<>(488);
             translitChars.put("ȼ", "c");
             translitChars.put("ᶇ", "n");
             translitChars.put("ɖ", "d");
@@ -3126,6 +3133,8 @@ public class LocaleController {
             translitChars.put("ő", "o");
             translitChars.put("ꜩ", "tz");
             translitChars.put("ẻ", "e");
+            translitChars.put("і", "i");
+            translitChars.put("ї", "i");
         }
         StringBuilder dst = new StringBuilder(src.length());
         int len = src.length();
