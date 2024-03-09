@@ -45,16 +45,20 @@ public class OctoUtils {
     }
 
     public static String getCorrectAppName() {
-        if (BuildConfig.BUILD_TYPE.equals("debug") || BuildConfig.BUILD_TYPE.equals("pbeta")) {
-            return "OctoGram Beta";
-        } else {
-            return "OctoGram";
-        }
+        return BuildConfig.BUILD_TYPE.equals("debug") || BuildConfig.BUILD_TYPE.equals("pbeta") ? "OctoGram Beta" : "OctoGram";
     }
 
 
     public static boolean isTelegramString(String string, int resId) {
-        return "Telegram".equals(string) || ("Telegram Beta".equals(string) || resId == R.string.AppNameBeta) || resId == R.string.AppName;
+        return "Telegram".equals(string) ||
+                "Telegram Beta".equals(string) ||
+                resId == R.string.AppNameBeta ||
+                resId == R.string.AppName ||
+                resId == R.string.NotificationHiddenName ||
+                resId == R.string.NotificationHiddenChatName ||
+                resId == R.string.SecretChatName ||
+                resId == R.string.Page1Title ||
+                resId == R.string.MapPreviewProviderTelegram;
     }
 
     public static boolean isTelegramString(String string) {
@@ -70,6 +74,17 @@ public class OctoUtils {
         } catch (Exception e) {
             FileLog.e(e);
         }
+    }
+
+    public static int getNotificationIcon() {
+        return R.drawable.notification;
+    }
+
+    public static String fixBrokenLang(String lang) {
+        if (lang.equals("in")) {
+            return "id";
+        }
+        return lang;
     }
 }
 

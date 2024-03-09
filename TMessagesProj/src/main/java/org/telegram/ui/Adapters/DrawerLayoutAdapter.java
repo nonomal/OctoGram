@@ -40,6 +40,7 @@ import java.util.Collections;
 
 import it.octogram.android.Datacenter;
 import it.octogram.android.OctoConfig;
+import it.octogram.android.preferences.ui.custom.doublebottom.PasscodeController;
 
 public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
 
@@ -238,6 +239,7 @@ public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
     private void resetItems() {
         accountNumbers.clear();
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
+            if (PasscodeController.isProtectedAccount(UserConfig.getInstance(a).getClientUserId())) continue;
             if (UserConfig.getInstance(a).isClientActivated()) {
                 accountNumbers.add(a);
             }
@@ -338,6 +340,11 @@ public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
                 showDivider = true;
             }
         }
+        if (ApplicationLoader.applicationLoaderInstance != null) {
+            if (ApplicationLoader.applicationLoaderInstance.extendDrawer(items)) {
+                showDivider = true;
+            }
+        }
         TLRPC.TL_attachMenuBots menuBots = MediaDataController.getInstance(UserConfig.selectedAccount).getAttachMenuBots();
         if (menuBots != null && menuBots.bots != null) {
             for (int i = 0; i < menuBots.bots.size(); i++) {
@@ -391,6 +398,22 @@ public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
         }
     }
 
+    public boolean click(View view, int position) {
+        position -= 2;
+        if (accountsShown) {
+            position -= getAccountRowsCount();
+        }
+        if (position < 0 || position >= items.size()) {
+            return false;
+        }
+        Item item = items.get(position);
+        if (item != null && item.listener != null) {
+            item.listener.onClick(view);
+            return true;
+        }
+        return false;
+    }
+
     public int getId(int position) {
         position -= 2;
         if (accountsShown) {
@@ -429,13 +452,15 @@ public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
         return item != null ? item.bot : null;
     }
 
-    private static class Item {
+    public static class Item {
         public int icon;
-        public String text;
+        public CharSequence text;
         public int id;
         TLRPC.TL_attachMenuBot bot;
+        View.OnClickListener listener;
+        public boolean error;
 
-        public Item(int id, String text, int icon) {
+        public Item(int id, CharSequence text, int icon) {
             this.icon = icon;
             this.id = id;
             this.text = text;
@@ -452,6 +477,17 @@ public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
             } else {
                 actionCell.setTextAndIcon(id, text, icon);
             }
+            actionCell.setError(error);
+        }
+
+        public Item onClick(View.OnClickListener listener) {
+            this.listener = listener;
+            return this;
+        }
+
+        public Item withError() {
+            this.error = true;
+            return this;
         }
     }
 }

@@ -424,7 +424,7 @@ public class DatabaseMigrationHelper {
             version = 64;
         }
         if (version == 64) {
-            database.executeFast("CREATE TABLE IF NOT EXISTS dialog_filter_octo(id INTEGER PRIMARY KEY, ord INTEGER, unread_count INTEGER, flags INTEGER, title TEXT, emoticon TEXT)").stepThis().dispose();
+            database.executeFast("CREATE TABLE IF NOT EXISTS dialog_filter_octo(id INTEGER PRIMARY KEY, ord INTEGER, unread_count INTEGER, flags INTEGER, title TEXT, emoticon TEXT, color INTEGER default -1)").stepThis().dispose();
             database.executeFast("CREATE TABLE IF NOT EXISTS dialog_filter_ep(id INTEGER, peer INTEGER, PRIMARY KEY (id, peer))").stepThis().dispose();
             database.executeFast("PRAGMA user_version = 65").stepThis().dispose();
             version = 65;
@@ -1409,10 +1409,70 @@ public class DatabaseMigrationHelper {
             version = 138;
         }
 
-        if (version == 138) {
-            database.executeFast("CREATE TABLE IF NOT EXISTS saved_reaction_tags (data BLOB);").stepThis().dispose();
-            database.executeFast("PRAGMA user_version = 139").stepThis().dispose();
-            version = 139;
+        if (version == 138 || version == 139 || version == 140 || version == 141) {
+            database.executeFast("DROP TABLE IF EXISTS tag_message_id;").stepThis().dispose();
+            database.executeFast("CREATE TABLE tag_message_id(mid INTEGER, topic_id INTEGER, tag INTEGER, text TEXT);").stepThis().dispose();
+            database.executeFast("CREATE INDEX IF NOT EXISTS tag_idx_tag_message_id ON tag_message_id(tag);").stepThis().dispose();
+            database.executeFast("CREATE INDEX IF NOT EXISTS tag_text_idx_tag_message_id ON tag_message_id(tag, text);").stepThis().dispose();
+            database.executeFast("CREATE INDEX IF NOT EXISTS tag_topic_idx_tag_message_id ON tag_message_id(topic_id, tag);").stepThis().dispose();
+            database.executeFast("CREATE INDEX IF NOT EXISTS tag_topic_text_idx_tag_message_id ON tag_message_id(topic_id, tag, text);").stepThis().dispose();
+            database.executeFast("PRAGMA user_version = 142").stepThis().dispose();
+            version = 142;
+        }
+
+        if (version == 142) {
+            database.executeFast("DROP TABLE IF EXISTS saved_reaction_tags;").stepThis().dispose();
+            database.executeFast("CREATE TABLE saved_reaction_tags (topic_id INTEGER PRIMARY KEY, data BLOB);").stepThis().dispose();
+            database.executeFast("PRAGMA user_version = 143").stepThis().dispose();
+            version = 143;
+        }
+
+        if (version == 143) {
+            database.executeFast("ALTER TABLE dialog_filter_octo ADD COLUMN color INTEGER default -1").stepThis().dispose();
+            database.executeFast("PRAGMA user_version = 144").stepThis().dispose();
+            version = 144;
+        }
+
+        if (version == 144) {
+//            database.executeFast("CREATE TABLE business_messages(mid INTEGER, type INTEGER, topic_id INTEGER, send_state INTEGER, date INTEGER, data BLOB, ttl INTEGER, replydata BLOB, reply_to_message_id INTEGER, PRIMARY KEY(mid, type))").stepThis().dispose();
+//            database.executeFast("CREATE INDEX IF NOT EXISTS send_state_idx_business_messages ON business_messages(mid, send_state, date);").stepThis().dispose();
+//            database.executeFast("CREATE INDEX IF NOT EXISTS type_topic_date_idx_business_messages ON business_messages(type, topic_id, date);").stepThis().dispose();
+//            database.executeFast("CREATE INDEX IF NOT EXISTS reply_to_idx_business_messages ON business_messages(mid, reply_to_message_id);").stepThis().dispose();
+//            database.executeFast("CREATE INDEX IF NOT EXISTS idx_to_reply_business_messages ON business_messages(reply_to_message_id, mid);").stepThis().dispose();
+
+            database.executeFast("PRAGMA user_version = 145").stepThis().dispose();
+            version = 145;
+        }
+
+        if (version == 145) {
+            database.executeFast("CREATE TABLE business_replies(topic_id INTEGER PRIMARY KEY, name TEXT, order_value INTEGER);").stepThis().dispose();
+
+            database.executeFast("PRAGMA user_version = 146").stepThis().dispose();
+            version = 146;
+        }
+
+        if (version == 146) {
+            database.executeFast("CREATE TABLE quick_replies_messages(mid INTEGER, topic_id INTEGER, send_state INTEGER, date INTEGER, data BLOB, ttl INTEGER, replydata BLOB, reply_to_message_id INTEGER, PRIMARY KEY(mid, topic_id))").stepThis().dispose();
+            database.executeFast("CREATE INDEX IF NOT EXISTS send_state_idx_quick_replies_messages ON quick_replies_messages(mid, send_state, date);").stepThis().dispose();
+            database.executeFast("CREATE INDEX IF NOT EXISTS topic_date_idx_quick_replies_messages ON quick_replies_messages(topic_id, date);").stepThis().dispose();
+            database.executeFast("CREATE INDEX IF NOT EXISTS reply_to_idx_quick_replies_messages ON quick_replies_messages(mid, reply_to_message_id);").stepThis().dispose();
+            database.executeFast("CREATE INDEX IF NOT EXISTS idx_to_reply_quick_replies_messages ON quick_replies_messages(reply_to_message_id, mid);").stepThis().dispose();
+
+            database.executeFast("PRAGMA user_version = 147").stepThis().dispose();
+            version = 147;
+        }
+
+        if (version == 147) {
+            database.executeFast("ALTER TABLE business_replies ADD COLUMN count INTEGER default 0").stepThis().dispose();
+
+            database.executeFast("PRAGMA user_version = 148").stepThis().dispose();
+            version = 148;
+        }
+
+        if (version == 148) {
+            database.executeFast("ALTER TABLE topics ADD COLUMN edit_date INTEGER default 0").stepThis().dispose();
+            database.executeFast("PRAGMA user_version = 149").stepThis().dispose();
+            version = 149;
         }
 
         return version;

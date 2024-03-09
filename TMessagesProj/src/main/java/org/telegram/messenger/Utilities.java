@@ -499,6 +499,16 @@ public class Utilities {
         return Math.max(Math.min(value, maxValue), minValue);
     }
 
+    public static double clamp(double value, double maxValue, double minValue) {
+        if (Double.isNaN(value)) {
+            return minValue;
+        }
+        if (Double.isInfinite(value)) {
+            return maxValue;
+        }
+        return Math.max(Math.min(value, maxValue), minValue);
+    }
+
     public static String generateRandomString() {
         return generateRandomString(16);
     }
@@ -559,8 +569,16 @@ public class Utilities {
     public static interface Callback4<T, T2, T3, T4> {
         public void run(T arg, T2 arg2, T3 arg3, T4 arg4);
     }
+
+    public static interface Callback4Return<T, T2, T3, T4, ReturnType> {
+        public ReturnType run(T arg, T2 arg2, T3 arg3, T4 arg4);
+    }
     public static interface Callback5<T, T2, T3, T4, T5> {
         public void run(T arg, T2 arg2, T3 arg3, T4 arg4, T5 arg5);
+    }
+
+    public static interface Callback5Return<T, T2, T3, T4, T5, ReturnType> {
+        public ReturnType run(T arg, T2 arg2, T3 arg3, T4 arg4, T5 arg5);
     }
 
     public static <Key, Value> Value getOrDefault(HashMap<Key, Value> map, Key key, Value defaultValue) {

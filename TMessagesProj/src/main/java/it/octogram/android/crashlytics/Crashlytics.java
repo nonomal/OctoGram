@@ -12,6 +12,7 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.os.Build;
 
 import androidx.annotation.NonNull;
@@ -111,6 +112,7 @@ public class Crashlytics {
                 "Google Play Services: " + ApplicationLoader.hasPlayServices + "\n" +
                 "Performance Class: " + getPerformanceClassString() + "\n" +
                 "Locale: " + LocaleController.getSystemLocaleStringIso639() + "\n" +
+                "Language CW: " + Resources.getSystem().getConfiguration().locale.getLanguage() + "\n" +
                 "Configuration: " + getOctoConfiguration() + "\n";
     }
 
@@ -173,7 +175,7 @@ public class Crashlytics {
             String line = reader.readLine();
             reader.close();
 
-            return line.replace(" ", "_").replace(",", "").replace(":", "_");
+            return (line != null) ? line.replace(" ", "_").replace(",", "").replace(":", "_") : "null";
         } catch (IOException e) {
             FileLog.e(e);
             return "null";

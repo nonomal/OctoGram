@@ -65,6 +65,8 @@ import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.Utilities;
+import org.telegram.ui.Components.AnimatedEmojiDrawable;
 import org.telegram.ui.Components.AnimatedFloat;
 import org.telegram.ui.Components.EffectsTextView;
 import org.telegram.ui.Components.LayoutHelper;
@@ -85,11 +87,12 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
     public static final int ALERT_TYPE_LOADING = 2;
     public static final int ALERT_TYPE_SPINNER = 3;
 
+    private int customWidth = -1;
     private View customView;
     private View bottomView;
     private View aboveMessageView;
     private int customViewHeight = LayoutHelper.WRAP_CONTENT;
-    private TextView titleTextView;
+    private SpoilersTextView titleTextView;
     private TextView secondTitleTextView;
     private TextView subtitleTextView;
     private TextView messageTextView;
@@ -114,6 +117,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
 
     private OnClickListener onClickListener;
     private OnDismissListener onDismissListener;
+    private Utilities.Callback<Runnable> overridenDissmissListener;
 
     private CharSequence[] items;
     private int[] itemIcons;
@@ -343,6 +347,11 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
                     inLayout = true;
                     int width = MeasureSpec.getSize(widthMeasureSpec);
                     int height = MeasureSpec.getSize(heightMeasureSpec);
+
+                    if (customWidth > 0) {
+                        width = customWidth + backgroundPaddings.left + backgroundPaddings.right;
+                    }
+
                     int maxContentHeight;
                     int availableHeight = maxContentHeight = height - getPaddingTop() - getPaddingBottom();
                     int availableWidth = width - getPaddingLeft() - getPaddingRight();
@@ -598,7 +607,13 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
         }
         containerView.setFitsSystemWindows(Build.VERSION.SDK_INT >= 21);
         if (setContent) {
-            setContentView(containerView);
+            if (customWidth > 0) {
+                FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                lp.gravity = Gravity.CENTER;
+                setContentView(containerView, lp);
+            } else {
+                setContentView(containerView);
+            }
         }
 
         final boolean hasButtons = positiveButtonText != null || negativeButtonText != null || neutralButtonText != null;
@@ -670,6 +685,8 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
             containerView.addView(titleContainer, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, topAnimationIsNew ? Gravity.CENTER_HORIZONTAL : 0, 24, 0, 24, 0));
 
             titleTextView = new SpoilersTextView(getContext(), false);
+            NotificationCenter.listenEmojiLoading(titleTextView);
+            titleTextView.cacheType = AnimatedEmojiDrawable.CACHE_TYPE_ALERT_PREVIEW;
             titleTextView.setText(title);
             titleTextView.setTextColor(getThemedColor(Theme.key_dialogTextBlack));
             titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
@@ -1309,6 +1326,12 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
 
     @Override
     public void dismiss() {
+        if (overridenDissmissListener != null) {
+            Utilities.Callback<Runnable> listener = overridenDissmissListener;
+            overridenDissmissListener = null;
+            listener.run(this::dismiss);
+            return;
+        }
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.emojiLoaded);
         if (onDismissListener != null) {
             onDismissListener.onDismiss(this);
@@ -1546,6 +1569,11 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
             return this;
         }
 
+        public Builder setWidth(int width) {
+            alertDialog.customWidth = width;
+            return this;
+        }
+
         public Builder aboveMessageView(View view) {
             alertDialog.aboveMessageView = view;
             return this;
@@ -1696,6 +1724,11 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
 
         public Builder setOnPreDismissListener(OnDismissListener onDismissListener) {
             alertDialog.onDismissListener = onDismissListener;
+            return this;
+        }
+
+        public Builder overrideDismissListener(Utilities.Callback<Runnable> overridenDissmissListener) {
+            alertDialog.overridenDissmissListener = overridenDissmissListener;
             return this;
         }
 

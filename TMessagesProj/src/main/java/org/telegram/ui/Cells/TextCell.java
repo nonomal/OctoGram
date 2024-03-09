@@ -96,7 +96,7 @@ public class TextCell extends FrameLayout {
         subtitleView.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
         addView(subtitleView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT));
 
-        valueTextView = new AnimatedTextView(context, false, false, true);
+        valueTextView = new AnimatedTextView(context, false, true, true);
         valueTextView.setTextColor(Theme.getColor(dialog ? Theme.key_dialogTextBlue2 : Theme.key_windowBackgroundWhiteValueText, resourcesProvider));
         valueTextView.setPadding(0, dp(18), 0, dp(18));
         valueTextView.setTextSize(dp(16));
@@ -269,7 +269,7 @@ public class TextCell extends FrameLayout {
         int textKey = textView.getTag() instanceof Integer ? (int) textView.getTag() : Theme.key_windowBackgroundWhiteBlackText;
         textView.setTextColor(processColor(Theme.getColor(textKey, resourcesProvider)));
         if (imageView.getTag() instanceof Integer) {
-            imageView.setColorFilter(new PorterDuffColorFilter(processColor(Theme.getColor((int) imageView.getTag(), resourcesProvider)), PorterDuff.Mode.MULTIPLY));
+            imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor((int) imageView.getTag(), resourcesProvider), PorterDuff.Mode.MULTIPLY));
         }
         subtitleView.setTextColor(processColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText, resourcesProvider)));
         valueTextView.setTextColor(processColor(Theme.getColor(Theme.key_windowBackgroundWhiteValueText, resourcesProvider)));
@@ -280,14 +280,14 @@ public class TextCell extends FrameLayout {
         textView.setTextColor(processColor(Theme.getColor(text, resourcesProvider)));
         textView.setTag(text);
         if (icon >= 0) {
-            imageView.setColorFilter(new PorterDuffColorFilter(processColor(Theme.getColor(icon, resourcesProvider)), PorterDuff.Mode.MULTIPLY));
+            imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(icon, resourcesProvider), PorterDuff.Mode.MULTIPLY));
             imageView.setTag(icon);
         }
     }
 
     private CharSequence valueText;
 
-    public void setText(String text, boolean divider) {
+    public void setText(CharSequence text, boolean divider) {
         imageLeft = 21;
         textView.setText(text);
         textView.setRightDrawable(null);
@@ -301,8 +301,12 @@ public class TextCell extends FrameLayout {
     }
 
     public void setLockLevel(boolean plus, int level) {
-        textView.setRightDrawable(new PeerColorActivity.LevelLock(getContext(), plus, level, resourcesProvider));
-        textView.setDrawablePadding(dp(6));
+        if (level <= 0) {
+            textView.setRightDrawable(null);
+        } else {
+            textView.setRightDrawable(new PeerColorActivity.LevelLock(getContext(), plus, level, resourcesProvider));
+            textView.setDrawablePadding(dp(6));
+        }
     }
 
     public void setTextAndIcon(CharSequence text, int resId, boolean divider) {
@@ -335,7 +339,7 @@ public class TextCell extends FrameLayout {
     }
 
     public void setTextAndIcon(String text, Drawable drawable, boolean divider) {
-        offsetFromImage = 68;
+        offsetFromImage = 71;
         imageLeft = 18;
         textView.setText(text);
         textView.setRightDrawable(null);
@@ -362,16 +366,16 @@ public class TextCell extends FrameLayout {
         this.imageLeft = imageLeft;
     }
 
-    public void setTextAndValue(String text, String value, boolean divider) {
+    public void setTextAndValue(CharSequence text, CharSequence value, boolean divider) {
         setTextAndValue(text, value, false, divider);
     }
 
-    public void setValue(String value, boolean animated) {
-        valueTextView.setText(value, animated);
-        valueTextView.setVisibility(VISIBLE);
-    }
+//    public void setValue(String value, boolean animated) {
+//        valueTextView.setText(value, animated);
+//        valueTextView.setVisibility(VISIBLE);
+//    }
 
-    public void setTextAndValue(String text, String value, boolean animated, boolean divider) {
+    public void setTextAndValue(CharSequence text, CharSequence value, boolean animated, boolean divider) {
         imageLeft = 21;
         offsetFromImage = getOffsetFromImage(false);
         textView.setText(text);
@@ -388,12 +392,16 @@ public class TextCell extends FrameLayout {
         }
     }
 
+    public void setValue(String value, boolean animated) {
+        valueTextView.setText(value == null ? "" : TextUtils.ellipsize(valueText = value, valueTextView.getPaint(), AndroidUtilities.displaySize.x / 2.5f, TextUtils.TruncateAt.END), animated);
+    }
+
     public void setTextAndValueAndColorfulIcon(String text, CharSequence value, boolean animated, int resId, int color, boolean divider) {
         imageLeft = 21;
         offsetFromImage = getOffsetFromImage(false);
         textView.setText(text);
         textView.setRightDrawable(null);
-        valueTextView.setText(TextUtils.ellipsize(valueText = value, valueTextView.getPaint(), AndroidUtilities.displaySize.x / 2.5f, TextUtils.TruncateAt.END), animated);
+        valueTextView.setText(value == null ? "" : TextUtils.ellipsize(valueText = value, valueTextView.getPaint(), AndroidUtilities.displaySize.x / 2.5f, TextUtils.TruncateAt.END), animated);
         valueTextView.setVisibility(VISIBLE);
         valueSpoilersTextView.setVisibility(GONE);
         setColorfulIcon(color, resId);
@@ -443,16 +451,16 @@ public class TextCell extends FrameLayout {
         }
     }
 
-    public void setTextAndValueAndIcon(String text, String value, int resId, boolean divider) {
+    public void setTextAndValueAndIcon(CharSequence text, CharSequence value, int resId, boolean divider) {
         setTextAndValueAndIcon(text, value, false, resId, divider);
     }
 
-    public void setTextAndValueAndIcon(CharSequence text, String value, boolean animated, int resId, boolean divider) {
+    public void setTextAndValueAndIcon(CharSequence text, CharSequence value, boolean animated, int resId, boolean divider) {
         imageLeft = 21;
         offsetFromImage = getOffsetFromImage(false);
         textView.setText(text);
         textView.setRightDrawable(null);
-        valueTextView.setText(TextUtils.ellipsize(valueText = value, valueTextView.getPaint(), AndroidUtilities.displaySize.x / 2.5f, TextUtils.TruncateAt.END), animated);
+        valueTextView.setText(value == null ? "" : TextUtils.ellipsize(valueText = value, valueTextView.getPaint(), AndroidUtilities.displaySize.x / 2.5f, TextUtils.TruncateAt.END), animated);
         valueTextView.setVisibility(VISIBLE);
         valueSpoilersTextView.setVisibility(GONE);
         valueImageView.setVisibility(GONE);
